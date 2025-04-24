@@ -1,8 +1,17 @@
 baseURL = 'https://woxqaq.github.io/'
-languageCode = 'en-us'
-title = 'My New Hugo Site'
+languageCode = 'zh-CN'
+title = 'woxQAQ blog'
+copytight = "本站遵循 CC BY-NC-SA 4.0 协议"
 theme = 'ananke'
 
 [caches]
   [caches.images]
     dir = ':cacheDir/images'
+
+[[menu.main]]
+url = "/posts"
+name = "归档"
+weight = 1
+
+[[params]]
+enableLaTeX = true
