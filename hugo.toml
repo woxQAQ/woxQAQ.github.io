@@ -3,11 +3,16 @@ languageCode = 'zh-cn'
 defaultContentLanguage = "zh"
 title = 'woxQAQ blog'
 copytight = "本站遵循 CC BY-NC-SA 4.0 协议"
-theme = 'ananke'
+theme = 'github-style'
 
 [caches]
   [caches.images]
     dir = ':cacheDir/images'
+
+[[menu.main]]
+url = "/home"
+name = "主页"
+weight = 0
 
 [[menu.main]]
 url = "/posts"
