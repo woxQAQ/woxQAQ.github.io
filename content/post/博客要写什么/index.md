@@ -1,7 +1,7 @@
 ---
 title: 博客要写什么
-date: 2025-04-24
-lastmod: 2025-04-24
+date: 2025-04-25
+lastmod: 2025-04-25
 tags:
 - about
 ---
