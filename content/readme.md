@@ -1,1 +1,6 @@
-hello world!
+# languages
+
+- Golang
+- Java
+- Javascript/Typescript
+
