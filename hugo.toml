@@ -2,7 +2,7 @@ baseURL = 'https://woxqaq.github.io/'
 languageCode = 'zh-cn'
 defaultContentLanguage = "zh"
 title = 'woxQAQ blog'
-copytight = "本站遵循 CC BY-NC-SA 4.0 协议"
+copyright = "本站遵循 CC BY-NC-SA 4.0 协议"
 theme = 'github-style'
 
 [caches]
