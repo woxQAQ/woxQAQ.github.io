@@ -19,10 +19,14 @@ url = "/posts"
 name = "归档"
 weight = 1
 
+[frontmatter]
+  lastmod = ["lastmod", ":fileModTime", ":default"]
+
 [params]
 enableLaTeX = true
 github = "woxQAQ"
 email = "woxqaq@gmail.com"
 lastmod = true
 location= "China"
+headerIcon = "https://avatars.githubusercontent.com/u/53343562?s=96&v=4"
 avatar = "https://avatars.githubusercontent.com/u/53343562?s=400&u=f72da4c3be00fb20631e0804897cc81bfa23bcb4&v=4"
