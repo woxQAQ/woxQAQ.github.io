@@ -1,6 +1,7 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # use hugo 0.145.0 to avoid breaking changes
+    nixpkgs.url = "github:NixOS/nixpkgs/f9642bd8de37073a1d6c096b7d9fbed15d337576";
     flake-parts.url = "github:hercules-ci/flake-parts";
   };
 
