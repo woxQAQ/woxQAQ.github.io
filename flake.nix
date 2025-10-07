@@ -22,7 +22,7 @@
             name = "woxQAQ's blog flake";
 
             buildInputs = with pkgs; [
-              hugo
+              pnpm
             ];
           };
         };
