@@ -19,6 +19,10 @@ jobs:
           fetch-depth: 0
           submodules: true
 
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+        id: pages
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
@@ -32,6 +36,11 @@ jobs:
       
       - name: Build
         run: pnpm build
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
 
   deploy:
     needs: Build-and-Deploy
