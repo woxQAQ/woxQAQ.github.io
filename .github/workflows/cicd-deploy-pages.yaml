@@ -4,7 +4,10 @@ on:
     branches: [main]
   workflow_dispatch:
   pull_request:
-
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 jobs:
   Build-and-Deploy:
     runs-on: ubuntu-latest
