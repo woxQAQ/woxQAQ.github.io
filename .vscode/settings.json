@@ -16,6 +16,6 @@
 	"editor.codeActionsOnSave": {
 		"source.fixAll.biome": "explicit"
 	},
-	"editor.wordWrap": "wordWrapColumn",
-	"frontMatter.dashboard.openOnStart": false
+	// "editor.wordWrap": "wordWrapColumn",
+	"frontMatter.dashboard.openOnStart": false,
 }
