@@ -1,7 +1,7 @@
 ---
 title: golang中的哈希表们
 published: 2025-10-07
-description: '本文将介绍golang中的哈希表们，包括普通map，哈希树map，瑞士表，元数据哈希表等'
+description: '本文将介绍golang中的哈希表们，包括普通map，瑞士表等'
 image: '../../assets/by-post/golang-hash-tables/Hash Table 3 1 1 0 1 0 0 SP.png'
 tags: ["golang"]
 category: 'tech'
@@ -11,7 +11,7 @@ lang: 'zh-CN'
 
 哈希表是日常开发中常用的一种数据结构，用于存储键值对。它的基本原理是通过哈希函数将键映射到一个索引位置，然后在该位置存储对应的值。它可以实现 $O(1)$ 的查找、插入和删除操作。
 
-golang 内置了 `map` 作为哈希表的实现，它基于拉链法解决哈希冲突，并实现了渐进式 rehash 机制来扩容哈希表。然而，map类型不支持并发写，因此 golang 的标准库 sync 提供了 `sync.Map` 类型，用于支持并发写。
+golang 内置了 `map` 作为哈希表的实现，它基于拉链法解决哈希冲突，并实现了渐进式 rehash 机制来扩容哈希表。然而， `map` 类型不支持并发写，因此 golang 的标准库 `sync` 提供了 `sync.Map` 类型，用于支持并发写。
 
 近期，golang 使用瑞士表(swiss table)作为其哈希表的实现。本文的目的就是介绍新旧哈希表的区别，以及它们的性能差异。
 
@@ -173,7 +173,7 @@ h.count++
 扩容有两种情况
 
 - 负载因子大于6.5：这种情况会进行正常扩容
-- 存在过多的溢出桶：进行 `sameSizeGrow` 扩容。这是一种特殊情况，我们插入大量元素后删掉大量元素，此时 map 内部会存在大量的空溢出桶，但是之后只要哈希表的元素个数不触发扩容，这些空溢出桶就会一直存在，导致内存泄漏
+- 存在过多的溢出桶：进行 `sameSizeGrow` 扩容。这是一种特殊情况，我们插入大量元素后删掉大量元素，此时 `map` 内部会存在大量的空溢出桶，但是之后只要哈希表的元素个数不触发扩容，这些空溢出桶就会一直存在，导致内存泄漏
 
 扩容分为两个步骤，第一是先创建扩容后的哈希桶，第二是将旧桶中的元素逐步迁移到新桶中。
 
@@ -230,8 +230,8 @@ func hashGrow(h *hmap) {
 
 具体扩容过程如下
 
-- hashGrow 函数仅用于初始化扩容所必需的数据结构
-- 扩容的具体逻辑要在初始化之后访问哈希表的时候触发。在扩容期间访问哈希表，会触发迁移过程。所访问key的旧桶（包含bucket和overflow bucket）数据会根据哈希值与旧桶数的与操作结果被迁移到新桶中。
+- `hashGrow` 函数仅用于初始化扩容所必需的数据结构
+- 扩容的具体逻辑要在初始化之后访问哈希表的时候触发。在扩容期间访问哈希表，会触发迁移过程。所访问key的旧桶（包含 `bucket` 和 `overflow bucket`）数据会根据哈希值与旧桶数的与操作结果被迁移到新桶中。
 - `nevacuate`记录当前已迁移的旧桶数量，如果`nevacuate==len(oldbuckets)`,那么迁移结束
 
 ```go
@@ -280,7 +280,7 @@ for _, tophash := range bucket.topbits{
 这个循环转化为单次的 SIMD 指令。
 
 > [!NOTE] 
-golang 实现的瑞士表是魔改版的，为了适配golang map的编程原语。下文介绍的也是golang的具体实现。具体原版实现，请看 https://abseil.io/about/design/swisstables
+golang 实现的瑞士表是魔改版的，为了适配golang `map` 的编程原语。下文介绍的也是golang的具体实现。具体原版实现，请看 https://abseil.io/about/design/swisstables
 
 瑞士表有以下的核心概念。
 
@@ -297,7 +297,7 @@ golang 实现的瑞士表是魔改版的，为了适配golang map的编程原语
 
 ![](../../assets/by-post/golang-hash-tables/swiss-table-struct.png)
 
-当哈希表存放的数据少于一个group的8个slot时，dirptr会直接指向一个 group。此时对哈希表的访问和删除都会走另外的 _small 方法
+当哈希表存放的数据少于一个 `group` 的8个 `slot` 时，`dirptr` 会直接指向一个 `group` 。
 
 ![](../../assets/by-post/golang-hash-tables/swiss-table-small-struct.png)
 
@@ -305,12 +305,12 @@ golang 实现的瑞士表是魔改版的，为了适配golang map的编程原语
 
 查询操作按照以下步骤
 
-1. 通过hash定位 directory index
-2. 计算 H1 和 H2, H1 用来构建查找序列，H2用来与控制字进行计算，获得 match 数
-3. 根据查找序列遍历 Table，根据 match 数定位到具体的 slot，检查 slot 是否为空。如果为空，则返回 nil。如果已使用，则检查 key 是否相等。如果相等，则返回 value。否则，继续遍历查找序列。
+1. 通过hash定位 `directory index`
+2. 计算 `H1` 和 `H2`, `H1` 用来构建查找序列，`H2` 用来与控制字进行计算，获得 `match` 数
+3. 根据查找序列遍历 Table，根据 `match` 数定位到具体的 slot，检查 slot 是否为空。如果为空，则返回 `nil` 。如果已使用，则检查 key 是否相等。如果相等，则返回 value。否则，继续遍历查找序列。
 
 > [!TIP] 
-查找序列根据 H1 构建，是遍历 group 的一种序列。基于二次探测+三角数序列，保证每个 group 内的 slot 被遍历到。
+查找序列根据 `H1` 构建，是遍历 group 的一种序列。基于二次探测+三角数序列，保证每个 group 内的 slot 被遍历到。
 
 ![](../../assets/by-post/golang-hash-tables/swiss-table-probe.png)
 
@@ -394,21 +394,21 @@ func runtime_mapaccess2(typ *abi.MapType, m *Map, key unsafe.Pointer) (unsafe.Po
 
 ```
 > [!TIP]
-这个瑞士表的源代码写的赏心悦目，以至于我觉得直接放源代码上来就能解释算法逻辑了。原先的实现充斥了大量的位运算，指针运算，看的让人头大
+这个瑞士表的源代码写的赏心悦目，以至于我觉得直接放源代码上来就能解释算法逻辑了。
 
 ## 插入
 
 插入的流程和查询差不多
 
 1. 定位目录索引
-2. 计算 H1 和 H2, H1 用来构建查找序列，H2用来与控制字进行计算，获得 match 数
-3. 遍历查找序列，根据 match 数定位到具体的 slot，并记录第一个被删除的slot/group信息
+2. 计算 `H1` 和 `H2`, `H1` 用来构建查找序列，`H2` 用来与控制字进行计算，获得 `match` 数
+3. 遍历查找序列，根据 `match` 数定位到具体的 slot，并记录第一个被删除的slot/group信息
 4. 如果找到相等的 key ，则进行更新；
 ![](../../assets/by-post/golang-hash-tables/swiss-table-insert-key-exists.png)
 5. 如果找到空 slot，说明到达查找序列的末尾，说明 key 不存在，需要进行插入。
 6. 如果有被删除的slot，可以利用第一个出现的被删除的slot；否则，则插入空 slot
 ![](../../assets/by-post/golang-hash-tables/swiss-table-insert-key-non-exists-hasdeleted.png)
-7. 如果哈希表没有剩余空间了，则需要进行 rehash
+7. 如果哈希表没有剩余空间了，则需要进行 `rehash`
 
 ## 扩容
 
@@ -441,13 +441,13 @@ Go map 的迭代语义非常严格，需要满足：
 	- 使用 localDepth 计算下一个索引；
 - 目录增长时，index 要对应倍增。
 
-整个瑞士表实现里最复杂的就是适配 map 原语的迭代了。首先，运行时有两个函数`mapIterStart`和`mapIterNext`，分别用于初始化迭代器和获取下一个键值对。
-
+> [!IMPORTANT]
+Iter 源码解析
 # `sync.Map`
 
 `sync.Map` 是 Golang 标准库中实现的一个支持并发读写的哈希表，他大量使用了原子操作来实现无锁并发读写
 
-`sync.Map` 维护两个 map，一个是类型为 `atomic.Pointer[readOnly]` 的原子指针 `read` 快照，这个指针指向一个readOnly 结构；一个是类型为 `map[any]*entry` 的标准map dirty，用于处理新键的插入，更新和删除。当 read miss 的时候，读操作会回退到 dirty 进行上锁查询
+`sync.Map` 维护两个 map，一个是类型为 `atomic.Pointer[readOnly]` 的原子指针 `read` 快照，这个指针指向一个 `readOnly` 结构，通过原子操作保证并发安全；一个是类型为 `map[any]*entry` 的 `dirty`，用于处理新键的插入，更新和删除。当 read miss 的时候，读操作会回退到 dirty 进行上锁查询
 ```go
 type Map struct {
 	_ noCopy
@@ -522,8 +522,9 @@ type entry struct {
 
 所有关于 `sync.Map` 的操作都可以总结为
 
-- 快速路径：首先对 read map进行无锁原子读写
-- 慢速路径：如果 read 中不存在 entry，就会尝试加锁，加锁成功后再次尝试读写 read，之后再考虑对 dirty map 进行查询或插入操作
+- 快速路径：首先对 `read` 进行无锁原子读写
+- 慢速路径：如果 `read` 中不存在 `entry` ，就会尝试加锁，加锁成功后再次尝试读写 `read` ，之后再考虑对 `dirty` 进行查询或插入操作
+- promote: `read` miss 时将 `misses` 计数加一，当 `misses` 数大于 `dirty` 大小时，会将 `dirty`  promote 为 `read` ，并将 `dirty` 清空
 
 
 ## 查询
@@ -683,4 +684,4 @@ func (m *Map) Swap(key, value any) (previous any, loaded bool) {
 1. 再次检查 `read` 时，如果 `entry` 被标记为删除，则需要将其加回 `dirty`  中。
 
 > [!NOTE]
-这是基于我们前面提到的 `entry` 的状态变化，如果有 `entry` 的状态为 `expunged` ，说明 `dirty` 已经 `promote` 过了，并且 `dirty` 没有维护这个`entry` 。此时，如果只更新 `read` ，那么下一次 `promote` 的时候，这条 `entry` 就会丢失，造成不一致。
+这是基于我们前面提到的 `entry` 的状态变化，如果有 `entry` 的状态为 `expunged` ，说明 `dirty` 已经 promote 过了，并且 `dirty` 没有维护这个`entry` 。此时，如果只更新 `read` ，那么下一次 promote 的时候，这条 `entry` 就会丢失，造成不一致。
