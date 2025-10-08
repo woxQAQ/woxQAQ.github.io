@@ -1,10 +1,10 @@
 ---
 import type { MarkdownHeading } from "astro";
+import { siteConfig } from "@/config";
 import Categories from "./Categories.astro";
 import Profile from "./Profile.astro";
 import Tag from "./Tags.astro";
 import TOC from "./TOC.astro";
-import { siteConfig } from "@/config";
 
 interface Props {
 	class?: string;
