@@ -1,7 +1,7 @@
 ---
-title: golang中的哈希表们
+title: golang中的哈希表(上)
 published: 2025-10-07
-description: '本文将介绍golang中的哈希表们，包括普通map，瑞士表等'
+description: '本文将介绍golang中的哈希表，包括最初基于拉链法的实现和瑞士表实现'
 image: '../../assets/by-post/golang-hash-tables/Hash Table 3 1 1 0 1 0 0 SP.png'
 tags: ["golang"]
 category: 'tech'
@@ -9,15 +9,17 @@ draft: false
 lang: 'zh-CN'
 ---
 
+# 前言
+
 哈希表是日常开发中常用的一种数据结构，用于存储键值对。它的基本原理是通过哈希函数将键映射到一个索引位置，然后在该位置存储对应的值。它可以实现 $O(1)$ 的查找、插入和删除操作。
 
 golang 内置了 `map` 作为哈希表的实现，它基于拉链法解决哈希冲突，并实现了渐进式 rehash 机制来扩容哈希表。然而， `map` 类型不支持并发写，因此 golang 的标准库 `sync` 提供了 `sync.Map` 类型，用于支持并发写。
 
-近期，golang 使用瑞士表(swiss table)作为其哈希表的实现。本文的目的就是介绍新旧哈希表的区别，以及它们的性能差异。
-
+最近，笔者在阅读 golang map 源码的时候，发现其底层实现已经修改为 swiss table，并且，`sync.Map` 的实现也不再依赖于 `map`
+ 类型，而是实现了哈希树(hashtrietree) 作为其实现。我对这些变化产生了兴趣，也就有了这篇文章。本文将主要介绍 go 原先实现的 `map` 和最新实现的 swiss-table。
 # 普通map
 
-map的底层如下所示
+首先给出 map 的数据结构并对字段进行解析
 
 ```go
 type hmap struct {
@@ -79,141 +81,231 @@ type bmap struct {
 }
 ```
 
+![](../../assets/by-post/golang-hash-tables/map-struct.png)
+
 ## 查询
 
-map 中的很多操作都利用了 `tophash`：哈希桶中会为每个key
-保存其高八位作为 `tophash`，这样当进行任意操作的时候，
-可以利用 `key` 计算 `tophash `
-而后遍历哈希桶的 `tophash` 数组(`topbits`) 进行**快速定位**。
+map 中的很多操作都利用了 `tophash`：哈希桶中会为每个key保存其高八位作为 `tophash`，这样当进行任意操作的时候，可以利用 `key` 计算 `tophash `而后遍历哈希桶的 `tophash` 数组(`topbits`) 进行快速定位。
 
-查询操作会首先进行**桶定位**，找到hash值对应的桶后，遍历哈希桶及其溢出桶，通过 tophash 快速定位并找到目标key。伪代码如下
-
-> [!NOTE] 
-此处伪代码并不代表实际实现
-
+go map 的查询允许返回一个返回值和两个返回值，两种情况会走不同的运行时方法
 ```go
-h := hash(key) ^ hash0 // hash value
-bucketIndex := h&(2^B-1) // bucket index
-bucket := buckets[bucketIndex] // get bucket
-
-// 计算当前哈希值的高8位
-func topHash(h uintptr) uint8 { 
-	top := uint8(hash >> (goarch.PtrSize * 8 -8)) // get highest 8 bit
-	if top < minTopHash{
-		top += minTopHash
-	}
-	return top
-}
-top := topHash(h)
-
-// 遍历所有桶，通过 tophash 快速定位并找到目标key
-for ; bucket != nil; bucket = overflow(){
-	for _, tophash := range bucket.topbits{
-		if tophash == top{
-			if keysEqual(bucket.key[i], key) {
-	            return bucket.value[i]
-	        }
-		}
-	} 
-}
-
-// 没找到，返回0值
-return unsafe.Pointer(&zeroValue[0])
+v,ok := m[key] ==> mapaccess2()
+v := m[key] ==> mapaccess1()
 ```
 
-## 插入（不考虑扩容）
+两种方法的实现没有太大区别，下面是 `mapaccess1` 的实现
 
-插入操作类似与查询，在遍历所有 key 的时候，如果找到目标key，则直接覆盖 value 即可。如果没有找到，则需要在第一个空槽位插入新的 key 和 value；如果没有空槽位，则需要创建一个新的溢出桶。
-
-```go
-bucket := buckets[bucketIndex] // get bucket
-top := tophash(h)
-// check if map is growing
-if isgrowing() {
-	growWork(t, h, bucket)
-}
-// loop over all bucket(include overflow bucket)
-for ; bucket != nil; bucket = bucket.overflow {
-	// firstEmpty indicate the first empty slot in the buckets
-	firstEmpty := -1
-	for i := 0; i < 8; i++{
-		th := b.tophash[i]
-		if th == top && keysEqual(b.keys[i], key) {
-			b.values[i] = val
-			return
+```go {"1":16-26}
+func mapaccess1(t *maptype, h *hmap, key unsafe.Pointer) unsafe.Pointer {
+	// 一些运行时处理，这里省略
+	someRuntimeProcess()
+	if h == nil || h.count == 0 {
+		if t.hashMightPanic() {
+			t.hasher(key, 0) // see issue 23734
 		}
-		if th == empty && firstEmpty == -1 {
-			firstEmpty = i
+		return unsafe.Pointer(&zeroVal[0])
+	}
+	if h.flags&hashWriting != 0 {
+		fatal("concurrent map read and map write")
+	}
+	hash := t.hasher(key, uintptr(h.hash0))
+	m := bucketMask(h.B)
+	b := (*bmap)(add(h.buckets, (hash&m)*uintptr(t.bucketsize)))
+
+	if c := h.oldbuckets; c != nil {
+		if !h.sameSizeGrow() {
+			// There used to be half as many buckets; mask down one more power of two.
+			m >>= 1
+		}
+		oldb := (*bmap)(add(c, (hash&m)*uintptr(t.bucketsize)))
+		if !evacuated(oldb) {
+			b = oldb
 		}
 	}
+	top := tophash(hash)
+bucketloop:
+	for ; b != nil; b = b.overflow(t) {
+		for i := uintptr(0); i < bucketCnt; i++ {
+			if b.tophash[i] != top {
+				if b.tophash[i] == emptyRest {
+					break bucketloop
+				}
+				continue
+			}
+			k := add(unsafe.Pointer(b), dataOffset+i*uintptr(t.keysize))
+			if t.indirectkey() {
+				k = *((*unsafe.Pointer)(k))
+			}
+			if t.key.equal(key, k) {
+				e := add(
+					unsafe.Pointer(b),
+					dataOffset+bucketCnt*uintptr(t.keysize)+i*uintptr(t.elemsize),
+				)
+				if t.indirectelem() {
+					e = *((*unsafe.Pointer)(e))
+				}
+				return e
+			}
+		}
+	}
+	return unsafe.Pointer(&zeroVal[0])
 }
+```
 
-// after loop, if find any empty slot
-// insert key and value
-if firstEmpty != -1 {
-	// insert here
-	b.keys[firstEmpty] = key
-	b.values[firstEmpty] = val
-	b.tophash[firstEmpty] = top
+这个代码中最值得注意的就是 bucketloop。bucketloop是 map 操作中广泛使用的概念，首先会通过 hash 得到 bucket，遍历 bucket 以及所有的 overflow bucket。在循环内，通过 tophash 快速定位 key 所在的槽位，并进行相应的计算。
+
+这部分代码还有一个要注意的地方
+
+- 当哈希表正在扩容 `oldbuckets != nil` 时，说明 map 此时正在被扩容，检查 hash 原先所在的 oldbucket 是否已经被迁移。如果未被迁移，那么当前查找需要在旧桶中进行（因为此时新桶内没有数据）
+
+![](../../assets/by-post/golang-hash-tables/map-probe.png)
+
+## 写入
+
+对 map 的写入操作会指向运行时中的 `mapassign` 方法：
+
+```go {67-70}
+// Like mapaccess, but allocates a slot for the key if it is not present in the map.
+func mapassign(t *maptype, h *hmap, key unsafe.Pointer) unsafe.Pointer {
+	someRuntimeProcess()
+	if h.flags&hashWriting != 0 {
+		fatal("concurrent map writes")
+	}
+	hash := t.hasher(key, uintptr(h.hash0))
+
+	// Set hashWriting after calling t.hasher, since t.hasher may panic,
+	// in which case we have not actually done a write.
+	h.flags ^= hashWriting
+
+	if h.buckets == nil {
+		h.buckets = newobject(t.bucket) // newarray(t.bucket, 1)
+	}
+
+again:
+	bucket := hash & bucketMask(h.B)
+	if h.growing() {
+		growWork(t, h, bucket)
+	}
+	b := (*bmap)(add(h.buckets, bucket*uintptr(t.bucketsize)))
+	top := tophash(hash)
+
+	var inserti *uint8
+	var insertk unsafe.Pointer
+	var elem unsafe.Pointer
+bucketloop:
+	for {
+		for i := uintptr(0); i < bucketCnt; i++ {
+			if b.tophash[i] != top {
+				if isEmpty(b.tophash[i]) && inserti == nil {
+					inserti = &b.tophash[i]
+					insertk = add(unsafe.Pointer(b), dataOffset+i*uintptr(t.keysize))
+					elem = add(unsafe.Pointer(b), dataOffset+bucketCnt*uintptr(t.keysize)+i*uintptr(t.elemsize))
+				}
+				if b.tophash[i] == emptyRest {
+					break bucketloop
+				}
+				continue
+			}
+			k := add(unsafe.Pointer(b), dataOffset+i*uintptr(t.keysize))
+			if t.indirectkey() {
+				k = *((*unsafe.Pointer)(k))
+			}
+			if !t.key.equal(key, k) {
+				continue
+			}
+			// already have a mapping for key. Update it.
+			if t.needkeyupdate() {
+				typedmemmove(t.key, k, key)
+			}
+			elem = add(unsafe.Pointer(b), dataOffset+bucketCnt*uintptr(t.keysize)+i*uintptr(t.elemsize))
+			goto done
+		}
+		ovf := b.overflow(t)
+		if ovf == nil {
+			break
+		}
+		b = ovf
+	}
+
+	// Did not find mapping for key. Allocate new cell & add entry.
+
+	// If we hit the max load factor or we have too many overflow buckets,
+	// and we're not already in the middle of growing, start growing.
+	if !h.growing() && (overLoadFactor(h.count+1, h.B) || tooManyOverflowBuckets(h.noverflow, h.B)) {
+		hashGrow(t, h)
+		goto again // Growing the table invalidates everything, so try again
+	}
+
+	if inserti == nil {
+		// The current bucket and all the overflow buckets connected to it are full, allocate a new one.
+		newb := h.newoverflow(t, b)
+		inserti = &newb.tophash[0]
+		insertk = add(unsafe.Pointer(newb), dataOffset)
+		elem = add(insertk, bucketCnt*uintptr(t.keysize))
+	}
+
+	// store new key/elem at insert position
+	if t.indirectkey() {
+		kmem := newobject(t.key)
+		*(*unsafe.Pointer)(insertk) = kmem
+		insertk = kmem
+	}
+	if t.indirectelem() {
+		vmem := newobject(t.elem)
+		*(*unsafe.Pointer)(elem) = vmem
+	}
+	typedmemmove(t.key, insertk, key)
+	*inserti = top
 	h.count++
-	return
-}
-// no empty slot to be inserted, need a new overflow bucket
-newb := allocateOverflowBucket()
-newb.keys[0] = key
-newb.values[0] = val
-newb.tophash[0] = top
-linkOverflowBucket(buckets[bIdx], newb)
-h.count++
 
+done:
+	if h.flags&hashWriting == 0 {
+		fatal("concurrent map writes")
+	}
+	h.flags &^= hashWriting
+	if t.indirectelem() {
+		elem = *((*unsafe.Pointer)(elem))
+	}
+	return elem
+}
 ```
+
+这个源码比较长，这里将其拆分为几个部分进行解析
+
+- bucketloop 部分：与查询操作类似，不同在于循环过程需要记录 empty slot 的索引
+- 检查负载因子和溢出桶数目，决定是否触发扩容。如果触发扩容，则重新进行 bucketloop，找到新的插入位置
+- 如果没有找到 empty slot 的索引，说明当前 bucket 以及所有的 overflow bucket 都是满的，需要分配一个新的溢出桶进行插入
+
+写入操作涉及到哈希表的扩容，因此需要对扩容做进一步介绍
 
 ## 扩容
 
 扩容有两种情况
 
-- 负载因子大于6.5：这种情况会进行正常扩容
-- 存在过多的溢出桶：进行 `sameSizeGrow` 扩容。这是一种特殊情况，我们插入大量元素后删掉大量元素，此时 `map` 内部会存在大量的空溢出桶，但是之后只要哈希表的元素个数不触发扩容，这些空溢出桶就会一直存在，导致内存泄漏
+- 负载因子大于6.5：这种情况会进行正常扩容，创建一个新的 bucket 数组，其大小是原来的两倍
+- 存在过多的溢出桶：进行 `sameSizeGrow` 扩容。这是一种特殊情况，当我们往 map 中插入大量元素后再删掉大量元素，此时 `map` 内部会存在大量的空溢出桶，但是之后只要哈希表的元素个数不触发扩容，这些空溢出桶就会一直存在并被 map 持有，不会被 gc，导致内存泄漏
 
-扩容分为两个步骤，第一是先创建扩容后的哈希桶，第二是将旧桶中的元素逐步迁移到新桶中。
+具体扩容过程如下
 
+1. `hashGrow` 函数用于初始化扩容所必需的数据结构，包括将 `bucket` 数组迁移到 `oldbuckets` 字段，以及创建新的 bucket 数组 `buckets`，大小取决于是否为 `sameSizeGrow`
 ```go
-// 检查负载因子是否大于6.5
-overload := overLoadFactor(h.count+1,h.B)
-// 检查是否存在过多的溢出桶
-toomanyOverflowBucket := tooManyOverFlowBuckets(h.noverflow,h.B)
-
-// 为了避免性能突变, 直接将旧桶迁移到新桶不是一个好方法
-// 因此 map 实现了渐进式扩容
-// h.growing() 返回 map 是否正在进行扩容
-if !h.growing() && (overload || toomanyOverflowBucket)) {
-	hashGrow(h)
-	//...
-}
-// go map resize's main goal is clearing the overload bucket chain
-// 
-// because if key cannot be found in the buckets, map will search
-// the bucket's overload bucket. 
-// in some edge cases, the overload bucket chain maybe very long
-// and cause the search operation time complexity from O(1) to O(n)
-func hashGrow(h *hmap) {
-	// bigger is used to indicate that the buckets should be 
-	// double or not
-	bigger := 1
-	
-	// if grow isn't caused by overload
-	// this grow will be `sameSizeGrow`
-	//
-	// `sameSizeGrow` will not double the buckets
-	// it create the same number of bucket with h.buckets
-	// and rehash the old buckets to new buckets
-	if !overload {
-		h.flags |= sameSizeGrow
+func hashGrow(t *maptype, h *hmap) {
+	// If we've hit the load factor, get bigger.
+	// Otherwise, there are too many overflow buckets,
+	// so keep the same number of buckets and "grow" laterally.
+	bigger := uint8(1)
+	if !overLoadFactor(h.count+1, h.B) {
 		bigger = 0
+		h.flags |= sameSizeGrow
 	}
 	oldbuckets := h.buckets
 	newbuckets, nextOverflow := makeBucketArray(t, h.B+bigger, nil)
-	
+
+	flags := h.flags &^ (iterator | oldIterator)
+	if h.flags&iterator != 0 {
+		flags |= oldIterator
+	}
+	// commit the grow (atomic wrt gc)
 	h.B += bigger
 	h.flags = flags
 	h.oldbuckets = oldbuckets
@@ -221,63 +313,172 @@ func hashGrow(h *hmap) {
 	h.nevacuate = 0
 	h.noverflow = 0
 
-	h.extra.oldoverflow = h.extra.overflow
-	h.extra.overflow = nil
-	h.extra.nextOverflow = nextOverflow
+	if h.extra != nil && h.extra.overflow != nil {
+		// Promote current overflow buckets to the old generation.
+		if h.extra.oldoverflow != nil {
+			throw("oldoverflow is not nil")
+		}
+		h.extra.oldoverflow = h.extra.overflow
+		h.extra.overflow = nil
+	}
+	if nextOverflow != nil {
+		if h.extra == nil {
+			h.extra = new(mapextra)
+		}
+		h.extra.nextOverflow = nextOverflow
+	}
+}
+```
+2. 扩容的具体逻辑要在初始化之后访问哈希表的时候触发。在扩容期间访问哈希表，会触发迁移过程`growWork`。
+```go
+func growWork(t *maptype, h *hmap, bucket uintptr) {
+	// make sure we evacuate the oldbucket corresponding
+	// to the bucket we're about to use
+	evacuate(t, h, bucket&h.oldbucketmask())
+
+	// evacuate one more oldbucket to make progress on growing
+	if h.growing() {
+		evacuate(t, h, h.nevacuate)
+	}
 }
 ```
 
+可以看到，`growWork()` 用到了两次 `evacuate`。`evacuate` 是执行扩容的具体函数。第一次调用 `evacuate`，会将当前 bucket 所对应的旧桶进行迁移。第二次调用是在保证哈希表正在扩容的前提下的`h.growing()`，会根据 `nevacuate` 搬迁下一个旧桶，这里是希望即使 `map` 的访问不均匀（比如用户一直访问同一个键），扩容也能持续推进。
 
-具体扩容过程如下
-
-- `hashGrow` 函数仅用于初始化扩容所必需的数据结构
-- 扩容的具体逻辑要在初始化之后访问哈希表的时候触发。在扩容期间访问哈希表，会触发迁移过程。所访问key的旧桶（包含 `bucket` 和 `overflow bucket`）数据会根据哈希值与旧桶数的与操作结果被迁移到新桶中。
-- `nevacuate`记录当前已迁移的旧桶数量，如果`nevacuate==len(oldbuckets)`,那么迁移结束
+`evacuate` 函数如下
 
 ```go
-newbit := noldbucksts()
-var xy [2]evacDst
-x := &xy[0]
-setEvacDst(x)
-if !sameSizeGrow {
-	y := &xy[1]
-	setEvacDst(y)
+// evacDst is an evacuation destination.
+type evacDst struct {
+	b *bmap          // current destination bucket
+	i int            // key/elem index into b
+	k unsafe.Pointer // pointer to current key storage
+	e unsafe.Pointer // pointer to current elem storage
 }
+func evacuate(t *maptype, h *hmap, oldbucket uintptr) {
+	b := (*bmap)(add(h.oldbuckets, oldbucket*uintptr(t.bucketsize)))
+	newbit := h.noldbuckets()
+	if !evacuated(b) {
+		// xy contains the x and y (low and high) evacuation destinations.
+		var xy [2]evacDst
+		x := &xy[0]
+		x.b = (*bmap)(add(h.buckets, oldbucket*uintptr(t.bucketsize)))
+		x.k = add(unsafe.Pointer(x.b), dataOffset)
+		x.e = add(x.k, bucketCnt*uintptr(t.keysize))
 
-b := buckets[bucketIndex]
-for ; b != nil; b = overflow() {
-	for i := 0; i < 8; i++ {
-		key := getKey(b,i)
-		var useY uint8
-		if !sameSizeGrow{
-			h := hash(key)
-			// 计算 h 第 B 位是否为0
-			if h&newbit != 0 {
-				useY = 1
+		if !h.sameSizeGrow() {
+			// Only calculate y pointers if we're growing bigger.
+			// Otherwise GC can see bad pointers.
+			y := &xy[1]
+			y.b = (*bmap)(add(h.buckets, (oldbucket+newbit)*uintptr(t.bucketsize)))
+			y.k = add(unsafe.Pointer(y.b), dataOffset)
+			y.e = add(y.k, bucketCnt*uintptr(t.keysize))
+		}
+
+		for ; b != nil; b = b.overflow(t) {
+			k := add(unsafe.Pointer(b), dataOffset)
+			e := add(k, bucketCnt*uintptr(t.keysize))
+			for i := 0; i < bucketCnt; i, k, e = i+1, add(k, uintptr(t.keysize)), add(e, uintptr(t.elemsize)) {
+				top := b.tophash[i]
+				if isEmpty(top) {
+					b.tophash[i] = evacuatedEmpty
+					continue
+				}
+				if top < minTopHash {
+					throw("bad map state")
+				}
+				k2 := k
+				if t.indirectkey() {
+					k2 = *((*unsafe.Pointer)(k2))
+				}
+				var useY uint8
+				if !h.sameSizeGrow() {
+					// Compute hash to make our evacuation decision (whether we need
+					// to send this key/elem to bucket x or bucket y).
+					hash := t.hasher(k2, uintptr(h.hash0))
+					if h.flags&iterator != 0 && !t.reflexivekey() && !t.key.equal(k2, k2) {
+						// If key != key (NaNs), then the hash could be (and probably
+						// will be) entirely different from the old hash. Moreover,
+						// it isn't reproducible. Reproducibility is required in the
+						// presence of iterators, as our evacuation decision must
+						// match whatever decision the iterator made.
+						// Fortunately, we have the freedom to send these keys either
+						// way. Also, tophash is meaningless for these kinds of keys.
+						// We let the low bit of tophash drive the evacuation decision.
+						// We recompute a new random tophash for the next level so
+						// these keys will get evenly distributed across all buckets
+						// after multiple grows.
+						useY = top & 1
+						top = tophash(hash)
+					} else {
+						if hash&newbit != 0 {
+							useY = 1
+						}
+					}
+				}
+
+				if evacuatedX+1 != evacuatedY || evacuatedX^1 != evacuatedY {
+					throw("bad evacuatedN")
+				}
+
+				b.tophash[i] = evacuatedX + useY // evacuatedX + 1 == evacuatedY
+				dst := &xy[useY]                 // evacuation destination
+
+				if dst.i == bucketCnt {
+					dst.b = h.newoverflow(t, dst.b)
+					dst.i = 0
+					dst.k = add(unsafe.Pointer(dst.b), dataOffset)
+					dst.e = add(dst.k, bucketCnt*uintptr(t.keysize))
+				}
+				dst.b.tophash[dst.i&(bucketCnt-1)] = top // mask dst.i as an optimization, to avoid a bounds check
+				if t.indirectkey() {
+					*(*unsafe.Pointer)(dst.k) = k2 // copy pointer
+				} else {
+					typedmemmove(t.key, dst.k, k) // copy elem
+				}
+				if t.indirectelem() {
+					*(*unsafe.Pointer)(dst.e) = *(*unsafe.Pointer)(e)
+				} else {
+					typedmemmove(t.elem, dst.e, e)
+				}
+				dst.i++
+				// These updates might push these pointers past the end of the
+				// key or elem arrays.  That's ok, as we have the overflow pointer
+				// at the end of the bucket to protect against pointing past the
+				// end of the bucket.
+				dst.k = add(dst.k, uintptr(t.keysize))
+				dst.e = add(dst.e, uintptr(t.elemsize))
 			}
 		}
-		dst := xy[useY]
-		moveKeyElem(key, getelem(key), dst)
+		// Unlink the overflow buckets & clear key/elem to help GC.
+		if h.flags&oldIterator == 0 && t.bucket.ptrdata != 0 {
+			b := add(h.oldbuckets, oldbucket*uintptr(t.bucketsize))
+			// Preserve b.tophash because the evacuation
+			// state is maintained there.
+			ptr := add(b, dataOffset)
+			n := uintptr(t.bucketsize) - dataOffset
+			memclrHasPointers(ptr, n)
+		}
 	}
-	addEvacuate()
+
+	if oldbucket == h.nevacuate {
+		advanceEvacuationMark(h, t, newbit)
+	}
 }
 ```
+
+`evacuate` 的源码比较复杂，并且包含了许多实现上的细节。这里我们不追究细节，而是将这个函数大致分为几个步骤
+
+- 计算 `evacDst`，这是迁移上下文，用于后续在 bucketloop 中决策数据应该迁移到哪个新桶
+- 尽管 `evacuate` 中没有 bucketloop 的 label，但是 `for ; b != nil; b = b.overflow(t)` 依然是一个 bucketloop。在 bucketloop 中，遍历每个 bucket，对每个 key-value，我们计算应该使用哪个 `evacDst` 作为迁移目标，而后进行迁移。
+- 标记 `oldbucket` 的内存为可清理 (`memclrHasPointers`)
+- 更新 `h.nevacuate` 为下一个待迁移的 bucket
+
+![](../../assets/by-post/golang-hash-tables/map-grow.png)
 
 # Swiss table
 
-瑞士表是来自 Google 的 Sam Benzaquen、Alkis Evlogimenos、Matt Kulukundis 和 Roman Perepelitsa 提出的一种新的 C++ 哈希表设计。golang 1.24 后引入了 Swiss table作为内置 map 类型的实现。瑞士表的核心思想是，**利用 SIMD 硬件，将原先迭代比较的方式，替换为并行比较的方式，来加速哈希查找**。即将
-
-```go
-for _, tophash := range bucket.topbits{
-	if tophash == top{
-		if keysEqual(bucket.key[i], key) {
-			return bucket.value[i]
-		}
-	}
-} 
-```
-
-这个循环转化为单次的 SIMD 指令。
+瑞士表是来自 Google 的 Sam Benzaquen、Alkis Evlogimenos、Matt Kulukundis 和 Roman Perepelitsa 提出的一种新的 C++ 哈希表设计。golang 1.24 后引入了 Swiss table作为内置 map 类型的实现。瑞士表的核心思想是，**利用 SIMD 硬件，将原先迭代比较的方式，替换为并行比较的方式，来加速哈希查找**。
 
 > [!NOTE] 
 golang 实现的瑞士表是魔改版的，为了适配golang `map` 的编程原语。下文介绍的也是golang的具体实现。具体原版实现，请看 https://abseil.io/about/design/swisstables
@@ -318,18 +519,7 @@ golang 实现的瑞士表是魔改版的，为了适配golang `map` 的编程原
 
 //go:linkname runtime_mapaccess2 runtime.mapaccess2
 func runtime_mapaccess2(typ *abi.MapType, m *Map, key unsafe.Pointer) (unsafe.Pointer, bool) {
-	if race.Enabled && m != nil {
-		callerpc := sys.GetCallerPC()
-		pc := abi.FuncPCABIInternal(runtime_mapaccess1)
-		race.ReadPC(unsafe.Pointer(m), callerpc, pc)
-		race.ReadObjectPC(typ.Key, key, callerpc, pc)
-	}
-	if msan.Enabled && m != nil {
-		msan.Read(key, typ.Key.Size_)
-	}
-	if asan.Enabled && m != nil {
-		asan.Read(key, typ.Key.Size_)
-	}
+	// ...
 
 	if m == nil || m.Used() == 0 {
 		if err := mapKeyError(typ, key); err != nil {
@@ -443,245 +633,3 @@ Go map 的迭代语义非常严格，需要满足：
 
 > [!IMPORTANT]
 Iter 源码解析
-# `sync.Map`
-
-`sync.Map` 是 Golang 标准库中实现的一个支持并发读写的哈希表，他大量使用了原子操作来实现无锁并发读写
-
-`sync.Map` 维护两个 map，一个是类型为 `atomic.Pointer[readOnly]` 的原子指针 `read` 快照，这个指针指向一个 `readOnly` 结构，通过原子操作保证并发安全；一个是类型为 `map[any]*entry` 的 `dirty`，用于处理新键的插入，更新和删除。当 read miss 的时候，读操作会回退到 dirty 进行上锁查询
-```go
-type Map struct {
-	_ noCopy
-
-	mu Mutex
-
-	// read contains the portion of the map's contents that are safe for
-	// concurrent access (with or without mu held).
-	//
-	// The read field itself is always safe to load, but must only be stored with
-	// mu held.
-	//
-	// Entries stored in read may be updated concurrently without mu, but updating
-	// a previously-expunged entry requires that the entry be copied to the dirty
-	// map and unexpunged with mu held.
-	read atomic.Pointer[readOnly]
-
-	// dirty contains the portion of the map's contents that require mu to be
-	// held. To ensure that the dirty map can be promoted to the read map quickly,
-	// it also includes all of the non-expunged entries in the read map.
-	//
-	// Expunged entries are not stored in the dirty map. An expunged entry in the
-	// clean map must be unexpunged and added to the dirty map before a new value
-	// can be stored to it.
-	//
-	// If the dirty map is nil, the next write to the map will initialize it by
-	// making a shallow copy of the clean map, omitting stale entries.
-	dirty map[any]*entry
-
-	// misses counts the number of loads since the read map was last updated that
-	// needed to lock mu to determine whether the key was present.
-	//
-	// Once enough misses have occurred to cover the cost of copying the dirty
-	// map, the dirty map will be promoted to the read map (in the unamended
-	// state) and the next store to the map will make a new dirty copy.
-	misses int
-}
-
-// readOnly is an immutable struct stored atomically in the Map.read field.
-type readOnly struct {
-	m       map[any]*entry
-	amended bool // true if the dirty map contains some key not in m.
-}
-
-
-// An entry is a slot in the map corresponding to a particular key.
-type entry struct {
-	// p points to the interface{} value stored for the entry.
-	//
-	// If p == nil, the entry has been deleted, and either m.dirty == nil or
-	// m.dirty[key] is e.
-	//
-	// If p == expunged, the entry has been deleted, m.dirty != nil, and the entry
-	// is missing from m.dirty.
-	//
-	// Otherwise, the entry is valid and recorded in m.read.m[key] and, if m.dirty
-	// != nil, in m.dirty[key].
-	//
-	// An entry can be deleted by atomic replacement with nil: when m.dirty is
-	// next created, it will atomically replace nil with expunged and leave
-	// m.dirty[key] unset.
-	//
-	// An entry's associated value can be updated by atomic replacement, provided
-	// p != expunged. If p == expunged, an entry's associated value can be updated
-	// only after first setting m.dirty[key] = e so that lookups using the dirty
-	// map find the entry.
-	p atomic.Pointer[any]
-}
-
-
-```
-
-所有关于 `sync.Map` 的操作都可以总结为
-
-- 快速路径：首先对 `read` 进行无锁原子读写
-- 慢速路径：如果 `read` 中不存在 `entry` ，就会尝试加锁，加锁成功后再次尝试读写 `read` ，之后再考虑对 `dirty` 进行查询或插入操作
-- promote: `read` miss 时将 `misses` 计数加一，当 `misses` 数大于 `dirty` 大小时，会将 `dirty`  promote 为 `read` ，并将 `dirty` 清空
-
-
-## 查询
-```go
-// Load returns the value stored in the map for a key, or nil if no
-// value is present.
-// The ok result indicates whether value was found in the map.
-func (m *Map) Load(key any) (value any, ok bool) {
-	read := m.loadReadOnly()
-	e, ok := read.m[key]
-	if !ok && read.amended {
-		m.mu.Lock()
-		// Avoid reporting a spurious miss if m.dirty got promoted while we were
-		// blocked on m.mu. (If further loads of the same key will not miss, it's
-		// not worth copying the dirty map for this key.)
-		read = m.loadReadOnly()
-		e, ok = read.m[key]
-		if !ok && read.amended {
-			e, ok = m.dirty[key]
-			// Regardless of whether the entry was present, record a miss: this key
-			// will take the slow path until the dirty map is promoted to the read
-			// map.
-			m.missLocked()
-		}
-		m.mu.Unlock()
-	}
-	if !ok {
-		return nil, false
-	}
-	return e.load()
-}
-```
-
-这段代码有两个要点
-
-1. 读 `miss` 后，为 `dirty` 上锁后再检查一次 `read`，因为在 `miss` 后，`dirty` 可能会被其他 goroutine `promote` 为 `read` ，可能会有新数据写入。因此需要再次检查 `read` 是否包含该 `key`
-![](../../assets/by-post/golang-hash-tables/sync-map-load-promote.png)
-2. 再次检查 `read` 之前需要更新 `read` ，因为可能会导致引用了过期的 `read` 的问题
-
-## 删除
-```go {18-20}
-func (m *Map) LoadAndDelete(key any) (value any, loaded bool) {
-	read := m.loadReadOnly()
-	e, ok := read.m[key]
-	if !ok && read.amended {
-		m.mu.Lock()
-		read = m.loadReadOnly()
-		e, ok = read.m[key]
-		if !ok && read.amended {
-			e, ok = m.dirty[key]
-			delete(m.dirty, key)
-			// Regardless of whether the entry was present, record a miss: this key
-			// will take the slow path until the dirty map is promoted to the read
-			// map.
-			m.missLocked()
-		}
-		m.mu.Unlock()
-	}
-	if ok {
-		return e.delete()
-	}
-	return nil, false
-}
-func (e *entry) delete() (value any, ok bool) {
-	for {
-		p := e.p.Load()
-		if p == nil || p == expunged {
-			return nil, false
-		}
-		if e.p.CompareAndSwap(p, nil) {
-			return *p, true
-		}
-	}
-}
-```
-
-删除操作值得注意的是，会将 `entry` 的指针置为 `nil` ，之后，当 `dirty` 被 `promote` 到 `read` 时，该 `entry` 会被标记为 `expunged`
-
-```go {9-11,18-20}
-
-func (m *Map) dirtyLocked() {
-	if m.dirty != nil {
-		return
-	}
-
-	read := m.loadReadOnly()
-	m.dirty = make(map[any]*entry, len(read.m))
-	for k, e := range read.m {
-		if !e.tryExpungeLocked() {
-			m.dirty[k] = e
-		}
-	}
-}
-
-func (e *entry) tryExpungeLocked() (isExpunged bool) {
-	p := e.p.Load()
-	for p == nil {
-		if e.p.CompareAndSwap(nil, expunged) {
-			return true
-		}
-		p = e.p.Load()
-	}
-	return p == expunged
-}
-```
-
-给出 `entry` 结构的状态机如下
-
-![](../../assets/by-post/golang-hash-tables/sync-map-entry-status.png)
-
-## 插入
-```go {15-19}
-func (m *Map) Swap(key, value any) (previous any, loaded bool) {
-	read := m.loadReadOnly()
-	if e, ok := read.m[key]; ok {
-		if v, ok := e.trySwap(&value); ok {
-			if v == nil {
-				return nil, false
-			}
-			return *v, true
-		}
-	}
-
-	m.mu.Lock()
-	read = m.loadReadOnly()
-	if e, ok := read.m[key]; ok {
-		if e.unexpungeLocked() {
-			// The entry was previously expunged, which implies that there is a
-			// non-nil dirty map and this entry is not in it.
-			m.dirty[key] = e
-		}
-		if v := e.swapLocked(&value); v != nil {
-			loaded = true
-			previous = *v
-		}
-	} else if e, ok := m.dirty[key]; ok {
-		if v := e.swapLocked(&value); v != nil {
-			loaded = true
-			previous = *v
-		}
-	} else {
-		if !read.amended {
-			// We're adding the first new key to the dirty map.
-			// Make sure it is allocated and mark the read-only map as incomplete.
-			m.dirtyLocked()
-			m.read.Store(&readOnly{m: read.m, amended: true})
-		}
-		m.dirty[key] = newEntry(value)
-	}
-	m.mu.Unlock()
-	return previous, loaded
-}
-```
-
-插入操作的要点是
-
-1. 再次检查 `read` 时，如果 `entry` 被标记为删除，则需要将其加回 `dirty`  中。
-
-> [!NOTE]
-这是基于我们前面提到的 `entry` 的状态变化，如果有 `entry` 的状态为 `expunged` ，说明 `dirty` 已经 promote 过了，并且 `dirty` 没有维护这个`entry` 。此时，如果只更新 `read` ，那么下一次 promote 的时候，这条 `entry` 就会丢失，造成不一致。
