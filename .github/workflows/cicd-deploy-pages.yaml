@@ -30,13 +30,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           cache: 'pnpm'
-      
+      - name: Use HTTPS instead of SSH for Git
+        run: |
+          git config --global url."https://github.com/".insteadOf git@github.com
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      
+
       - name: Build
         run: pnpm build
-      
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
