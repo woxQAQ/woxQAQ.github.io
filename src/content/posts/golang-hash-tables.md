@@ -152,13 +152,13 @@ bucketloop:
 }
 ```
 
-这个代码中最值得注意的就是 bucketloop。bucketloop是 map 操作中广泛使用的概念，首先会通过 hash 得到 bucket，遍历 bucket 以及所有的 overflow bucket。在循环内，通过 tophash 快速定位 key 所在的槽位，并进行相应的计算。
+这个代码中最值得注意的就是 bucketloop。bucketloop是 map 操作中广泛使用的概念。首先通过 hash 得到 bucket，在 bucketloop 内，遍历 bucket 以及所有的 overflow bucket。在循环内，通过 tophash 快速定位 key 所在的槽位，并进行相应的计算。
+
+![](../../assets/by-post/golang-hash-tables/map-probe.png)
 
 这部分代码还有一个要注意的地方
 
-- 当哈希表正在扩容 `oldbuckets != nil` 时，说明 map 此时正在被扩容，检查 hash 原先所在的 oldbucket 是否已经被迁移。如果未被迁移，那么当前查找需要在旧桶中进行（因为此时新桶内没有数据）
-
-![](../../assets/by-post/golang-hash-tables/map-probe.png)
+- 当哈希表正在扩容 `oldbuckets != nil` 时，检查 hash 原先所在的 oldbucket 是否已经被迁移。如果未被迁移，那么当前查找需要在旧桶中进行（因为此时新桶内没有数据）
 
 ## 写入
 
