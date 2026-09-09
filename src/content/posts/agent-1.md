@@ -189,3 +189,7 @@ for await (const event of eventStream) {
 - ...
 
 本系列的核心观点：复杂的系统总是从简单的概念长起来的，只要抓住本质就能掌握全局
+
+# 接下来?
+
+只讲一个agent loop当然不是本系列的目的，接下来的文章我们会引入更多的概念，上下文管理，session tree，工具，记忆等等
