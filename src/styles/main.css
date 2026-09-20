@@ -1,4 +1,20 @@
-@tailwind components;
+@import "tailwindcss";
+
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --font-sans: "Roboto", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Custom classes that are used with @apply inside other @utility/@layer rules.
+   Note: @apply-ing a @utility inside another @utility drops variant rules in v4,
+   so only expand-animation stays a @utility; the rest live in @layer components. */
+@utility expand-animation {
+    @apply relative before:ease-out before:transition active:bg-none hover:before:bg-[var(--btn-plain-bg-hover)] active:before:bg-[var(--btn-plain-bg-active)] z-0
+    before:absolute before:rounded-[inherit] before:inset-0 before:scale-[0.85] hover:before:scale-100 before:-z-10
+}
 
 @layer components {
     .card-base {
@@ -9,10 +25,6 @@
     }
     .card-shadow {
         @apply drop-shadow-[0_2px_4px_rgba(0,0,0,0.005)]
-    }
-    .expand-animation {
-        @apply relative before:ease-out before:transition active:bg-none hover:before:bg-[var(--btn-plain-bg-hover)] active:before:bg-[var(--btn-plain-bg-active)] z-0
-        before:absolute before:rounded-[inherit] before:inset-0 before:scale-[0.85] hover:before:scale-100 before:-z-10
     }
     .link {
         @apply transition rounded-md p-1 -m-1 expand-animation;
@@ -102,13 +114,31 @@
         before:font-medium before:first-of-type:hidden before:transition
     }
 
-    .btn-regular-dark {
-        @apply flex items-center justify-center
-        bg-[oklch(0.45_0.01_var(--hue))] hover:bg-[oklch(0.50_0.01_var(--hue))] active:bg-[oklch(0.55_0.01_var(--hue))]
-        dark:bg-[oklch(0.30_0.02_var(--hue))] dark:hover:bg-[oklch(0.35_0.03_var(--hue))] dark:active:bg-[oklch(0.40_0.03_var(--hue))]
+    /* banner layout rules (previously inlined in Layout.astro) */
+    .enable-banner.is-home #banner-wrapper {
+        @apply h-[var(--banner-height-home)] translate-y-[var(--banner-height-extend)]
     }
-    .btn-regular-dark.success {
-        @apply bg-[oklch(0.75_0.14_var(--hue))] dark:bg-[oklch(0.75_0.14_var(--hue))]
+    .enable-banner #banner-wrapper {
+        @apply h-[var(--banner-height-home)]
+    }
+
+    .enable-banner.is-home #banner {
+        @apply h-[var(--banner-height-home)] translate-y-0
+    }
+    .enable-banner #banner {
+        @apply h-[var(--banner-height-home)] translate-y-[var(--bannerOffset)]
+    }
+    .enable-banner.is-home #main-grid {
+        @apply translate-y-[var(--banner-height-extend)];
+    }
+    .enable-banner #top-row {
+        @apply h-[calc(var(--banner-height-home)_-_4.5rem)] transition-all duration-300
+    }
+    .enable-banner.is-home #sidebar-sticky {
+        @apply top-[calc(1rem_-_var(--banner-height-extend))]
+    }
+    .navbar-hidden {
+        @apply opacity-0 -translate-y-16
     }
 }
 
