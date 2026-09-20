@@ -11,6 +11,8 @@
 			"**",
 			"!**/src/**/*.css",
 			"!**/src/public/**/*",
+			"!**/src/.excalidraw/**/*",
+			"!**/src/.obsidian/**/*",
 			"!**/dist/**/*",
 			"!**/node_modules/**/*"
 		]
