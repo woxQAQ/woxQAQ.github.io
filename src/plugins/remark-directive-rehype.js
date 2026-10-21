@@ -1,5 +1,4 @@
-import { h } from "hastscript";
-import { visit } from "unist-util-visit";
+import { h, visit } from "astro-expressive-code/hast";
 
 export function parseDirectiveNode() {
 	return (tree, { _data }) => {

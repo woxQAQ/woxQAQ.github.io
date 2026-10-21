@@ -1,5 +1,5 @@
 /// <reference types="mdast" />
-import { h } from "hastscript";
+import { h } from "astro-expressive-code/hast";
 
 /**
  * Creates a GitHub Card component.

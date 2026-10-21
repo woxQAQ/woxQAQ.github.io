@@ -1,4 +1,4 @@
-import { definePlugin } from "@expressive-code/core";
+import { definePlugin } from "astro-expressive-code";
 import type { Element } from "hast";
 
 export function pluginCustomCopyButton() {
