@@ -16,7 +16,7 @@
     "preinstall": "npx only-allow pnpm"
   },
   "dependencies": {
-    "@astrojs/check": "^0.9.10",
+    "@astrojs/check": "^0.9.11",
     "@astrojs/markdown-remark": "^7.3.3",
     "@astrojs/rss": "^4.0.19",
     "@astrojs/sitemap": "^3.7.4",
@@ -34,7 +34,7 @@
     "@swup/astro": "^1.8.0",
     "@tailwindcss/typography": "^0.5.20",
     "@tailwindcss/vite": "^4.3.3",
-    "astro": "7.4.0",
+    "astro": "7.4.1",
     "astro-expressive-code": "^0.44.2",
     "astro-icon": "^1.2.0",
     "hastscript": "^9.0.1",
