@@ -6,7 +6,6 @@
 	"astro": true,
 	"svelte": true,
 	"ignorePatterns": [
-		"**/*.css",
 		"src/content/**",
 		"src/public/**",
 		"src/.excalidraw/**",
