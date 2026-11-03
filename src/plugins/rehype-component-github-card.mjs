@@ -10,19 +10,21 @@ import { h } from "astro-expressive-code/hast";
  * @returns {import('mdast').Parent} The created GitHub Card component.
  */
 export function GithubCardComponent(properties, children) {
-	if (Array.isArray(children) && children.length !== 0)
+	if (Array.isArray(children) && children.length !== 0) {
 		return h("div", { class: "hidden" }, [
 			'Invalid directive. ("github" directive must be leaf type "::github{repo="owner/repo"}")',
 		]);
+	}
 
-	if (!properties.repo?.includes("/"))
+	if (!properties.repo?.includes("/")) {
 		return h(
 			"div",
 			{ class: "hidden" },
 			'Invalid repository. ("repo" attributte must be in the format "owner/repo")',
 		);
+	}
 
-	const repo = properties.repo;
+	const {repo} = properties;
 	const cardUuid = `GC${Math.random().toString(36).slice(-6)}`; // Collisions are not important
 
 	const nAvatar = h(`div#${cardUuid}-avatar`, { class: "gc-avatar" });

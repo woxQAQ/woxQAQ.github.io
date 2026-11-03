@@ -9,7 +9,7 @@ interface Props {
 	headings: MarkdownHeading[];
 }
 
-let { headings = [] } = Astro.props;
+const { headings = [] } = Astro.props;
 
 let minDepth = 10;
 for (const heading of headings) {
@@ -20,7 +20,7 @@ const className = Astro.props.class;
 const isPostsRoute = Astro.url.pathname.startsWith(url("/posts/"));
 
 const removeTailingHash = (text: string) => {
-	let lastIndexOfHash = text.lastIndexOf("#");
+	const lastIndexOfHash = text.lastIndexOf("#");
 	if (lastIndexOfHash !== text.length - 1) {
 		return text;
 	}
@@ -28,7 +28,7 @@ const removeTailingHash = (text: string) => {
 	return text.substring(0, lastIndexOfHash);
 };
 
-let heading1Count = 1;
+const heading1Count = 1;
 
 const maxLevel = siteConfig.toc.depth;
 ---
@@ -117,8 +117,9 @@ const maxLevel = siteConfig.toc.depth;
 				if (
 					entry.isIntersecting
 					&& this.anchorNavTarget == entry.target.firstChild
-				)
+				) {
 					this.anchorNavTarget = null;
+				}
 			});
 
 			if (!this.active.includes(true)) this.fallback();
@@ -146,13 +147,13 @@ const maxLevel = siteConfig.toc.depth;
 			if (min > max) {
 				this.activeIndicator?.setAttribute("style", `opacity: 0`);
 			} else {
-				let parentOffset = this.tocEl?.getBoundingClientRect().top || 0;
-				let scrollOffset = this.tocEl?.scrollTop || 0;
-				let top =
+				const parentOffset = this.tocEl?.getBoundingClientRect().top || 0;
+				const scrollOffset = this.tocEl?.scrollTop || 0;
+				const top =
 					this.tocEntries[min].getBoundingClientRect().top
 					- parentOffset
 					+ scrollOffset;
-				let bottom =
+				const bottom =
 					this.tocEntries[max].getBoundingClientRect().bottom
 					- parentOffset
 					+ scrollOffset;
@@ -183,9 +184,9 @@ const maxLevel = siteConfig.toc.depth;
 				bottommost.getBoundingClientRect().bottom
 					- topmost.getBoundingClientRect().top
 				< 0.9 * tocHeight
-			)
+			) {
 				top = topmost.offsetTop - 32;
-			else top = bottommost.offsetTop - tocHeight * 0.8;
+			} else top = bottommost.offsetTop - tocHeight * 0.8;
 
 			this.tocEl.scrollTo({
 				top,
@@ -207,8 +208,8 @@ const maxLevel = siteConfig.toc.depth;
 			if (!this.sections.length) return;
 
 			for (let i = 0; i < this.sections.length; i++) {
-				let offsetTop = this.sections[i].getBoundingClientRect().top;
-				let offsetBottom = this.sections[i].getBoundingClientRect().bottom;
+				const offsetTop = this.sections[i].getBoundingClientRect().top;
+				const offsetBottom = this.sections[i].getBoundingClientRect().bottom;
 
 				if (
 					this.isInRange(offsetTop, 0, window.innerHeight)

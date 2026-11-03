@@ -276,11 +276,11 @@ function disableAnimation() {
 
 	function setClickOutsideToClose(panel: string, ignores: string[]) {
 		document.addEventListener("click", (event) => {
-			let panelDom = document.getElementById(panel);
-			let tDom = event.target;
+			const panelDom = document.getElementById(panel);
+			const tDom = event.target;
 			if (!(tDom instanceof Node)) return; // Ensure the event target is an HTML Node
-			for (let ig of ignores) {
-				let ie = document.getElementById(ig);
+			for (const ig of ignores) {
+				const ie = document.getElementById(ig);
 				if (ie == tDom || ie?.contains(tDom)) {
 					return;
 				}
@@ -424,8 +424,8 @@ function disableAnimation() {
 			if (!bannerEnabled) {
 				return;
 			}
-			let threshold = window.innerHeight * (BANNER_HEIGHT / 100) - 72 - 16;
-			let navbar = document.getElementById("navbar-wrapper");
+			const threshold = window.innerHeight * (BANNER_HEIGHT / 100) - 72 - 16;
+			const navbar = document.getElementById("navbar-wrapper");
 			if (!navbar || !document.body.classList.contains("lg:is-home")) {
 				return;
 			}
@@ -453,7 +453,7 @@ function disableAnimation() {
 			}
 
 			// Hide the TOC while scrolling back to top
-			let toc = document.getElementById("toc-wrapper");
+			const toc = document.getElementById("toc-wrapper");
 			if (toc) {
 				toc.classList.add("toc-not-ready");
 			}
@@ -486,11 +486,11 @@ function disableAnimation() {
 		document.addEventListener("swup:enable", setup);
 	}
 
-	let backToTopBtn = document.getElementById("back-to-top-btn");
-	let toc = document.getElementById("toc-wrapper");
-	let navbar = document.getElementById("navbar-wrapper");
+	const backToTopBtn = document.getElementById("back-to-top-btn");
+	const toc = document.getElementById("toc-wrapper");
+	const navbar = document.getElementById("navbar-wrapper");
 	function scrollFunction() {
-		let bannerHeight = window.innerHeight * (BANNER_HEIGHT / 100);
+		const bannerHeight = window.innerHeight * (BANNER_HEIGHT / 100);
 
 		if (backToTopBtn) {
 			if (
@@ -526,7 +526,7 @@ function disableAnimation() {
 			) {
 				bannerHeight = BANNER_HEIGHT_HOME;
 			}
-			let threshold =
+			const threshold =
 				window.innerHeight * (bannerHeight / 100)
 				- NAVBAR_HEIGHT
 				- MAIN_PANEL_EXCESS_HEIGHT
@@ -560,7 +560,7 @@ function disableAnimation() {
 	import "photoswipe/style.css";
 
 	let lightbox: PhotoSwipeLightbox;
-	let pswp = import("photoswipe");
+	const pswp = import("photoswipe");
 
 	function createPhotoSwipe() {
 		lightbox = new PhotoSwipeLightbox({

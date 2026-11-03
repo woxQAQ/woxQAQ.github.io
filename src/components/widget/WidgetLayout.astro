@@ -63,7 +63,7 @@ const className = Astro.props.class;
 
 			if (this.dataset.isCollapsed !== "true") return;
 
-			const id = this.dataset.id;
+			const {id} = this.dataset;
 			const btn = this.querySelector(".expand-btn");
 			const wrapper = this.querySelector(`#${id}`);
 			btn!.addEventListener("click", () => {

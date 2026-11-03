@@ -12,7 +12,7 @@ import NavMenuPanel from "./widget/NavMenuPanel.astro";
 
 const className = Astro.props.class;
 
-let links: NavBarLink[] = navBarConfig.links.map(
+const links: NavBarLink[] = navBarConfig.links.map(
 	(item: NavBarLink | LinkPreset): NavBarLink => {
 		if (typeof item === "number") {
 			return LinkPresets[item];
@@ -107,27 +107,27 @@ let links: NavBarLink[] = navBarConfig.links.map(
 	}
 
 	function loadButtonScript() {
-		let switchBtn = document.getElementById("scheme-switch");
+		const switchBtn = document.getElementById("scheme-switch");
 		if (switchBtn) {
 			switchBtn.onclick = function () {
 				switchTheme();
 			};
 		}
 
-		let settingBtn = document.getElementById("display-settings-switch");
+		const settingBtn = document.getElementById("display-settings-switch");
 		if (settingBtn) {
 			settingBtn.onclick = function () {
-				let settingPanel = document.getElementById("display-setting");
+				const settingPanel = document.getElementById("display-setting");
 				if (settingPanel) {
 					settingPanel.classList.toggle("float-panel-closed");
 				}
 			};
 		}
 
-		let menuBtn = document.getElementById("nav-menu-switch");
+		const menuBtn = document.getElementById("nav-menu-switch");
 		if (menuBtn) {
 			menuBtn.onclick = function () {
-				let menuPanel = document.getElementById("nav-menu-panel");
+				const menuPanel = document.getElementById("nav-menu-panel");
 				if (menuPanel) {
 					menuPanel.classList.toggle("float-panel-closed");
 				}

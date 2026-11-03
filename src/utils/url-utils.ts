@@ -27,8 +27,9 @@ export function getCategoryUrl(category: string | null): string {
 		|| category.trim() === ""
 		|| category.trim().toLowerCase()
 			=== i18n(I18nKey.uncategorized).toLowerCase()
-	)
+	) {
 		return url("/archive/?uncategorized=true");
+	}
 	return url(`/archive/?category=${encodeURIComponent(category.trim())}`);
 }
 

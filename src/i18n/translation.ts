@@ -11,13 +11,11 @@ import { vi } from "./languages/vi";
 import { zh_CN } from "./languages/zh_CN";
 import { zh_TW } from "./languages/zh_TW";
 
-export type Translation = {
-	[K in I18nKey]: string;
-};
+export type Translation = Record<I18nKey, string>;
 
 const defaultTranslation = en;
 
-const map: { [key: string]: Translation } = {
+const map: Record<string, Translation> = {
 	es: es,
 	en: en,
 	en_us: en,
