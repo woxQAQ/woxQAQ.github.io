@@ -24,7 +24,7 @@ export function GithubCardComponent(properties, children) {
 		);
 	}
 
-	const {repo} = properties;
+	const { repo } = properties;
 	const cardUuid = `GC${Math.random().toString(36).slice(-6)}`; // Collisions are not important
 
 	const nAvatar = h(`div#${cardUuid}-avatar`, { class: "gc-avatar" });
