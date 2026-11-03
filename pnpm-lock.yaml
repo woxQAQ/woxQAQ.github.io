@@ -12,9 +12,6 @@ importers:
 
   .:
     dependencies:
-      '@astrojs/check':
-        specifier: ^0.9.12
-        version: 0.9.12(@emnapi/runtime@1.11.1)(prettier@3.9.10)(typescript@5.9.3)
       '@astrojs/markdown-remark':
         specifier: ^7.3.4
         version: 7.3.4
@@ -54,12 +51,6 @@ importers:
       '@swup/astro':
         specifier: ^1.8.0
         version: 1.8.0
-      '@tailwindcss/typography':
-        specifier: ^0.5.20
-        version: 0.5.20(tailwindcss@4.3.3)
-      '@tailwindcss/vite':
-        specifier: ^4.3.3
-        version: 4.3.3(vite@8.3.5(@types/node@25.9.1)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.80.4)(stylus@0.64.0)(terser@5.43.1)(yaml@2.9.1))
       astro:
         specifier: 7.4.2
         version: 7.4.2(@astrojs/markdown-remark@7.3.4)(@types/node@25.9.1)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.80.4)(stylus@0.64.0)(terser@5.43.1)(yaml@2.9.1)
@@ -81,9 +72,6 @@ importers:
       overlayscrollbars:
         specifier: ^2.16.0
         version: 2.16.0
-      pagefind:
-        specifier: ^1.5.2
-        version: 1.5.2
       photoswipe:
         specifier: ^5.4.4
         version: 5.4.4
@@ -117,28 +105,25 @@ importers:
       sanitize-html:
         specifier: ^2.18.1
         version: 2.18.1
-      sharp:
-        specifier: ^0.35.5
-        version: 0.35.5(@types/node@25.9.1)
-      stylus:
-        specifier: ^0.64.0
-        version: 0.64.0
       svelte:
         specifier: ^5.57.2
         version: 5.57.2
-      tailwindcss:
-        specifier: ^4.3.3
-        version: 4.3.3
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
     devDependencies:
+      '@astrojs/check':
+        specifier: ^0.9.12
+        version: 0.9.12(@emnapi/runtime@1.11.1)(prettier@3.9.10)(typescript@5.9.3)
       '@astrojs/compiler-rs':
         specifier: 0.5.2
         version: 0.5.2
       '@astrojs/ts-plugin':
         specifier: ^1.10.12
         version: 1.10.12
+      '@tailwindcss/typography':
+        specifier: ^0.5.20
+        version: 0.5.20(tailwindcss@4.3.3)
+      '@tailwindcss/vite':
+        specifier: ^4.3.3
+        version: 4.3.3(vite@8.3.5(@types/node@25.9.1)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.80.4)(stylus@0.64.0)(terser@5.43.1)(yaml@2.9.1))
       '@types/hast':
         specifier: ^3.0.5
         version: 3.0.5
@@ -157,6 +142,21 @@ importers:
       oxlint:
         specifier: 1.90.0
         version: 1.90.0
+      pagefind:
+        specifier: ^1.5.2
+        version: 1.5.2
+      sharp:
+        specifier: ^0.35.5
+        version: 0.35.5(@types/node@25.9.1)
+      stylus:
+        specifier: ^0.64.0
+        version: 0.64.0
+      tailwindcss:
+        specifier: ^4.3.3
+        version: 4.3.3
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
 
 packages:
 
