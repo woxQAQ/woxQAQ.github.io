@@ -28,7 +28,11 @@ const removeTailingHash = (text: string) => {
 	return text.substring(0, lastIndexOfHash);
 };
 
-const heading1Count = 1;
+const headingNumbers = new Map(
+	headings
+		.filter((heading) => heading.depth == minDepth)
+		.map((heading, index) => [heading, index + 1]),
+);
 
 const maxLevel = siteConfig.toc.depth;
 ---
@@ -54,7 +58,7 @@ const maxLevel = siteConfig.toc.depth;
 							},
 						]}
 					>
-						{heading.depth == minDepth && heading1Count++}
+						{headingNumbers.get(heading)}
 						{heading.depth == minDepth + 1 && (
 							<div class="transition w-2 h-2 rounded-[0.1875rem] bg-[var(--toc-badge-bg)]"></div>
 						)}

@@ -3,6 +3,7 @@ import { defineConfig } from "oxlint";
 export default defineConfig({
 	categories: {
 		correctness: "error",
+		perf: "error",
 	},
 	plugins: [
 		"typescript", "unicorn", "oxc", "import", "node", "promise","jsdoc"
