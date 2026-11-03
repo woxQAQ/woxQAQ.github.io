@@ -1,5 +1,3 @@
-@reference "./main.css";
-
 .custom-md {
 	h1 {
 		@apply text-3xl;
@@ -117,7 +115,7 @@
 	ul,
 	ol {
 		li::marker {
-			@apply text-[var(--primary)];
+			color: var(--primary);
 		}
 	}
 
@@ -132,7 +130,7 @@
 		/* Remove the double quotes from default styles */
 		p:before,
 		p:after {
-			@apply content-none;
+			content: none;
 		}
 	}
 

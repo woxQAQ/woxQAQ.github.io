@@ -24,3 +24,15 @@ pnpm check
 Use `pnpm lint:fix` to apply safe lint fixes. CI runs `pnpm format:check` and
 `pnpm lint` without modifying files. Formatting covers source code, including
 Astro and Svelte components; CSS and blog content are excluded.
+
+## Styling
+
+UnoCSS is configured in `uno.config.ts` and registered through its Astro integration.
+The Wind4 preset supplies utilities and the base reset; the typography preset
+styles Markdown. Shared utility combinations live in `shortcuts`, and the
+directives transformer expands `@apply` in CSS. The Svelte extractor handles
+`class:` directives in client components.
+
+Use explicit `before:content-['']` or `after:content-['']` when creating decorative
+pseudo-elements. Component styles belong in the `components` CSS layer so that
+utility classes can override them.

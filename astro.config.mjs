@@ -1,12 +1,12 @@
 import { unified } from "@astrojs/markdown-remark";
 import sitemap from "@astrojs/sitemap";
 import svelte from "@astrojs/svelte";
-import tailwindcss from "@tailwindcss/vite";
 import { pluginLineNumbers } from "@expressive-code/plugin-line-numbers";
 import swup from "@swup/astro";
-import { defineConfig } from "astro/config";
+import UnoCSS from "@unocss/astro";
 import expressiveCode from "astro-expressive-code";
 import icon from "astro-icon";
+import { defineConfig } from "astro/config";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeComponents from "rehype-components"; /* Render the custom directive content */
 import rehypeKatex from "rehype-katex";
@@ -15,6 +15,7 @@ import remarkDirective from "remark-directive"; /* Handle directives */
 import remarkGithubAdmonitionsToDirectives from "remark-github-admonitions-to-directives";
 import remarkMath from "remark-math";
 import remarkSectionize from "remark-sectionize";
+
 import { expressiveCodeConfig } from "./src/config.ts";
 import { pluginCustomCopyButton } from "./src/plugins/expressive-code/custom-copy-button.js";
 import { pluginLanguageBadge } from "./src/plugins/expressive-code/language-badge.ts";
@@ -31,11 +32,12 @@ export default defineConfig({
 	trailingSlash: "always",
 	compressHTML: true,
 	integrations: [
+		UnoCSS(),
 		swup({
 			theme: false,
 			animationClass: "transition-swup-", // see https://swup.js.org/options/#animationselector
 			// the default value `transition-` cause transition delay
-			// when the Tailwind class `transition-all` is used
+			// when the utility class `transition-all` is used
 			containers: ["main", "#toc"],
 			smoothScrolling: true,
 			cache: true,
@@ -153,14 +155,13 @@ export default defineConfig({
 		}),
 	},
 	vite: {
-		plugins: [tailwindcss()],
 		build: {
 			rollupOptions: {
 				onwarn(warning, warn) {
 					// temporarily suppress this warning
 					if (
-						warning.message.includes("is dynamically imported by") &&
-						warning.message.includes("but also statically imported by")
+						warning.message.includes("is dynamically imported by")
+						&& warning.message.includes("but also statically imported by")
 					) {
 						return;
 					}
