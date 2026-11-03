@@ -47,8 +47,8 @@
 		if (tags.length > 0) {
 			filteredPosts = filteredPosts.filter(
 				(post) =>
-					Array.isArray(post.data.tags) &&
-					post.data.tags.some((tag) => tags.includes(tag)),
+					Array.isArray(post.data.tags)
+					&& post.data.tags.some((tag) => tags.includes(tag)),
 			);
 		}
 

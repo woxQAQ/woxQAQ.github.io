@@ -81,8 +81,8 @@ const maxLevel = siteConfig.toc.depth;
 			style="opacity: 0"
 			class:list={[
 				{ hidden: headings.length == 0 },
-				"-z-10 absolute bg-[var(--toc-btn-hover)] left-0 right-0 rounded-xl transition-all " +
-					"group-hover:bg-transparent border-2 border-[var(--toc-btn-hover)] group-hover:border-[var(--toc-btn-active)] border-dashed",
+				"-z-10 absolute bg-[var(--toc-btn-hover)] left-0 right-0 rounded-xl transition-all "
+					+ "group-hover:bg-transparent border-2 border-[var(--toc-btn-hover)] group-hover:border-[var(--toc-btn-active)] border-dashed",
 			]}
 		></div>
 	</table-of-contents>
@@ -115,8 +115,8 @@ const maxLevel = siteConfig.toc.depth;
 				if (idx != undefined) this.active[idx] = entry.isIntersecting;
 
 				if (
-					entry.isIntersecting &&
-					this.anchorNavTarget == entry.target.firstChild
+					entry.isIntersecting
+					&& this.anchorNavTarget == entry.target.firstChild
 				)
 					this.anchorNavTarget = null;
 			});
@@ -149,13 +149,13 @@ const maxLevel = siteConfig.toc.depth;
 				let parentOffset = this.tocEl?.getBoundingClientRect().top || 0;
 				let scrollOffset = this.tocEl?.scrollTop || 0;
 				let top =
-					this.tocEntries[min].getBoundingClientRect().top -
-					parentOffset +
-					scrollOffset;
+					this.tocEntries[min].getBoundingClientRect().top
+					- parentOffset
+					+ scrollOffset;
 				let bottom =
-					this.tocEntries[max].getBoundingClientRect().bottom -
-					parentOffset +
-					scrollOffset;
+					this.tocEntries[max].getBoundingClientRect().bottom
+					- parentOffset
+					+ scrollOffset;
 				this.activeIndicator?.setAttribute(
 					"style",
 					`top: ${top}px; height: ${bottom - top}px`,
@@ -180,9 +180,9 @@ const maxLevel = siteConfig.toc.depth;
 
 			let top;
 			if (
-				bottommost.getBoundingClientRect().bottom -
-					topmost.getBoundingClientRect().top <
-				0.9 * tocHeight
+				bottommost.getBoundingClientRect().bottom
+					- topmost.getBoundingClientRect().top
+				< 0.9 * tocHeight
 			)
 				top = topmost.offsetTop - 32;
 			else top = bottommost.offsetTop - tocHeight * 0.8;
@@ -211,9 +211,9 @@ const maxLevel = siteConfig.toc.depth;
 				let offsetBottom = this.sections[i].getBoundingClientRect().bottom;
 
 				if (
-					this.isInRange(offsetTop, 0, window.innerHeight) ||
-					this.isInRange(offsetBottom, 0, window.innerHeight) ||
-					(offsetTop < 0 && offsetBottom > window.innerHeight)
+					this.isInRange(offsetTop, 0, window.innerHeight)
+					|| this.isInRange(offsetBottom, 0, window.innerHeight)
+					|| (offsetTop < 0 && offsetBottom > window.innerHeight)
 				) {
 					this.markActiveHeading(i);
 				} else if (offsetTop > window.innerHeight) break;

@@ -39,8 +39,8 @@ const config = profileConfig;
 			{config.bio}
 		</div>
 		<div class="flex flex-wrap gap-2 justify-center mb-1">
-			{config.links.length > 1 &&
-				config.links.map((item) => (
+			{config.links.length > 1
+				&& config.links.map((item) => (
 					<a
 						rel="me"
 						aria-label={item.name}

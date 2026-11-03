@@ -4,16 +4,16 @@ export function parseDirectiveNode() {
 	return (tree, { _data }) => {
 		visit(tree, (node) => {
 			if (
-				node.type === "containerDirective" ||
-				node.type === "leafDirective" ||
-				node.type === "textDirective"
+				node.type === "containerDirective"
+				|| node.type === "leafDirective"
+				|| node.type === "textDirective"
 			) {
 				const data = node.data || (node.data = {});
 				node.attributes = node.attributes || {};
 				if (
-					node.children.length > 0 &&
-					node.children[0].data &&
-					node.children[0].data.directiveLabel
+					node.children.length > 0
+					&& node.children[0].data
+					&& node.children[0].data.directiveLabel
 				) {
 					// Add a flag to the node to indicate that it has a directive label
 					node.attributes["has-directive-label"] = true;

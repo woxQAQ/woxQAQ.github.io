@@ -430,8 +430,8 @@ function disableAnimation() {
 				return;
 			}
 			if (
-				document.body.scrollTop >= threshold ||
-				document.documentElement.scrollTop >= threshold
+				document.body.scrollTop >= threshold
+				|| document.documentElement.scrollTop >= threshold
 			) {
 				navbar.classList.add("navbar-hidden");
 			}
@@ -494,8 +494,8 @@ function disableAnimation() {
 
 		if (backToTopBtn) {
 			if (
-				document.body.scrollTop > bannerHeight ||
-				document.documentElement.scrollTop > bannerHeight
+				document.body.scrollTop > bannerHeight
+				|| document.documentElement.scrollTop > bannerHeight
 			) {
 				backToTopBtn.classList.remove("hide");
 			} else {
@@ -505,8 +505,8 @@ function disableAnimation() {
 
 		if (bannerEnabled && toc) {
 			if (
-				document.body.scrollTop > bannerHeight ||
-				document.documentElement.scrollTop > bannerHeight
+				document.body.scrollTop > bannerHeight
+				|| document.documentElement.scrollTop > bannerHeight
 			) {
 				toc.classList.remove("toc-hide");
 			} else {
@@ -521,19 +521,19 @@ function disableAnimation() {
 
 			let bannerHeight = BANNER_HEIGHT;
 			if (
-				document.body.classList.contains("lg:is-home") &&
-				window.innerWidth >= 1024
+				document.body.classList.contains("lg:is-home")
+				&& window.innerWidth >= 1024
 			) {
 				bannerHeight = BANNER_HEIGHT_HOME;
 			}
 			let threshold =
-				window.innerHeight * (bannerHeight / 100) -
-				NAVBAR_HEIGHT -
-				MAIN_PANEL_EXCESS_HEIGHT -
-				16;
+				window.innerHeight * (bannerHeight / 100)
+				- NAVBAR_HEIGHT
+				- MAIN_PANEL_EXCESS_HEIGHT
+				- 16;
 			if (
-				document.body.scrollTop >= threshold ||
-				document.documentElement.scrollTop >= threshold
+				document.body.scrollTop >= threshold
+				|| document.documentElement.scrollTop >= threshold
 			) {
 				navbar.classList.add("navbar-hidden");
 			} else {

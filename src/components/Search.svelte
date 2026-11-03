@@ -91,9 +91,9 @@
 		const initializeSearch = () => {
 			initialized = true;
 			pagefindLoaded =
-				typeof window !== "undefined" &&
-				!!window.pagefind &&
-				typeof window.pagefind.search === "function";
+				typeof window !== "undefined"
+				&& !!window.pagefind
+				&& typeof window.pagefind.search === "function";
 			console.log("Pagefind status on init:", pagefindLoaded);
 			if (keywordDesktop) search(keywordDesktop, true);
 			if (keywordMobile) search(keywordMobile, false);

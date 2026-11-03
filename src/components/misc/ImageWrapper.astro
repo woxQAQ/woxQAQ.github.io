@@ -18,10 +18,10 @@ const { id, src, alt, position = "center", basePath = "/" } = Astro.props;
 const className = Astro.props.class;
 
 const isLocal = !(
-	src.startsWith("/") ||
-	src.startsWith("http") ||
-	src.startsWith("https") ||
-	src.startsWith("data:")
+	src.startsWith("/")
+	|| src.startsWith("http")
+	|| src.startsWith("https")
+	|| src.startsWith("data:")
 );
 const isPublic = src.startsWith("/");
 
