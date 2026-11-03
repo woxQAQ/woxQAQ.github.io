@@ -21,7 +21,7 @@ export function AdmonitionComponent(properties, children, type) {
 	let label = null;
 	if (properties?.["has-directive-label"]) {
 		label = children[0]; // The first child is the label
-		// biome-ignore lint/style/noParameterAssign: <check later>
+		// oxlint-disable-next-line no-param-reassign -- Omit the directive label from the rendered body.
 		children = children.slice(1);
 		label.tagName = "div"; // Change the tag <p> to <div>
 	}

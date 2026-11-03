@@ -13,9 +13,14 @@ Please keep each pull request focused on a single purpose. Avoid mixing unrelate
 
 Please use the [Conventional Commits](https://www.conventionalcommits.org/) format for your commit messages whenever possible. This keeps our history clear and consistent.
 
-Before submitting code, please run the appropriate commands to check for errors and format your code.
+We use oxfmt for formatting and oxlint for linting. Before submitting code, run:
 
 ```bash
-pnpm check
 pnpm format
+pnpm lint
+pnpm check
 ```
+
+Use `pnpm lint:fix` to apply safe lint fixes. CI runs `pnpm format:check` and
+`pnpm lint` without modifying files. Formatting covers source code, including
+Astro and Svelte components; CSS and blog content are excluded.
