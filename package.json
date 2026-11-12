@@ -18,7 +18,7 @@
     "preinstall": "npx only-allow pnpm"
   },
   "dependencies": {
-    "@astrojs/markdown-remark": "^7.3.5",
+    "@astrojs/markdown-remark": "^7.3.6",
     "@astrojs/rss": "^4.0.19",
     "@astrojs/sitemap": "^3.7.4",
     "@astrojs/svelte": "9.1.2",
@@ -28,10 +28,10 @@
     "@iconify-json/fa6-brands": "^1.2.6",
     "@iconify-json/fa6-regular": "^1.2.4",
     "@iconify-json/fa6-solid": "^1.2.4",
-    "@iconify-json/material-symbols": "^1.2.97",
+    "@iconify-json/material-symbols": "^1.2.98",
     "@iconify/svelte": "^4.2.0",
     "@swup/astro": "^1.8.0",
-    "astro": "7.4.4",
+    "astro": "7.4.8",
     "astro-expressive-code": "^0.44.3",
     "astro-icon": "^1.2.0",
     "katex": "^0.19.1",
@@ -53,7 +53,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
-    "@astrojs/compiler-rs": "0.5.2",
+    "@astrojs/compiler-rs": "0.5.3",
     "@astrojs/ts-plugin": "^1.10.12",
     "@types/hast": "^3.0.5",
     "@types/markdown-it": "^14.2.0",
